@@ -1,0 +1,4 @@
+<launch>
+    <include file = "$(find huace_navsat_driver)/launch/huace_navsat.launch" />
+    <include file = "$(find msg_converter)/launch/converter.launch" />
+</launch>

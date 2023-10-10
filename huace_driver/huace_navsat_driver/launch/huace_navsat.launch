@@ -1,0 +1,15 @@
+
+<launch> 
+
+  <arg name="port" default="/dev/ttyUSB0"/>
+  <arg name="baud" default="230400" />
+ 
+
+<!--read sentence and publish topic-->
+<node pkg="huace_navsat_driver" type="huace_topic_serial_reader" name="huace_topic_serial_reader" output="log">
+  <param name="port" value="$(arg port)" />
+  <param name="baud" value="$(arg baud)" />
+</node>
+
+
+</launch>

@@ -1,0 +1,7 @@
+<launch>
+    <!-- <include file = "${find huace_navsat_driver}/launch/huace_navsat.launch" /> -->
+    <param name="rec_topic" type="string" value="/nmea_sentence" />
+    <param name="pub_topic" type="string" value="/INS/cicv_location" />
+    <node pkg="msg_converter"  type="converter_node"  name="converter_node"  output="screen"></node>
+    <!-- launch-prefix="xterm -e gdb -ex run - -args" -->
+</launch>

@@ -1,0 +1,77 @@
+#! /usr/bin/env python
+# coding:utf-8
+
+
+import serial
+import re
+import rospy
+
+
+from nmea_msgs.msg import Sentence
+from lib_navsat_driver.driver import ROSNMEADriver
+from lib_navsat_driver.checksum_utils import check_nmea_checksum
+
+
+GPS = None
+
+if __name__ == '__main__':
+    rospy.init_node('huace_topic_serial_reader')
+
+    nmea_pub = rospy.Publisher("nmea_sentence", Sentence,queue_size=1)
+
+    serial_port = rospy.get_param('~port','/dev/ttyUSB0')
+    serial_baud = rospy.get_param('~baud',115200)
+    rospy.logwarn("serial_port : %s" %repr(serial_port))
+    rospy.logwarn("serial_baud : %s" %repr(serial_baud))
+   
+    # Get the frame_id
+    frame_id = ROSNMEADriver.get_frame_id()
+
+    try:
+        
+        while not rospy.is_shutdown():   
+            # reconnect and init
+            if GPS:
+                rospy.logwarn("[huace]May be USB Port reconnected,need to reconnect!!!")
+                if GPS.is_open:
+                    GPS.close()
+            
+            # open serial GPS
+            try:
+                GPS = serial.Serial(port=serial_port, baudrate=serial_baud, timeout=100)
+            except serial.SerialException as e:
+                rospy.logwarn("[huace]GPS open error!!!")
+                continue
+
+            while not rospy.is_shutdown():
+                try:
+                    data = GPS.readline().strip()
+                except serial.SerialException as e:
+                    rospy.logwarn("[huace]GPS readline() error,need to break!!!")
+                    break
+                
+                # replace \r\n if exist
+                data = data.replace("\r\n", "")
+                    
+                # Check for a valid nmea sentence
+                if not re.match('^\$GP.*\*[0-9A-Fa-f]{2}$', data):
+                    rospy.logwarn("Regex didn't match, sentence not valid NMEA? Sentence was: %s"
+                                    % repr(data))
+                    continue
+
+                # Check checksum
+                if not check_nmea_checksum(data):
+                    rospy.logwarn("Received a sentence with an invalid checksum. " +
+                            "Sentence was: %s" % repr(data))
+                    continue
+
+                sentence = Sentence()
+                sentence.header.stamp = rospy.get_rostime()
+                sentence.header.frame_id = frame_id
+                sentence.sentence = data
+
+                nmea_pub.publish(sentence)
+
+    except rospy.ROSInterruptException:
+            GPS.close() #Close GPS serial port            
+        
